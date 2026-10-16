@@ -8,61 +8,68 @@ use Illuminate\Validation\Rule;
 
 class StudentController extends Controller
 {
-    private function rules(?int $id = null): array
-    {
-        return [
-            'name' => 'required|string|max:255',
-            'email' => ['required', 'email', 'max:255', Rule::unique('students', 'email')->ignore($id)],
-            'phone' => 'required|string|max:20',
-            'address' => 'required|string|max:500',
-            'date_of_birth' => 'required|date|before:today',
-        ];
-    }
-
     public function index()
     {
-        $students = Student::latest()->paginate(10);
-        return view('students.index', compact('students'));
+        return view('student.list', [
+            'students' => Student::all(),
+        ]);
     }
 
     public function create()
     {
-        return view('students.create');
+        return view('student.create');
     }
 
     public function store(Request $request)
     {
-        $data = $request->validate($this->rules());
-        Student::create($data);
+        $student = Student::create($request->validate($this->rules()));
 
-        return redirect()->route('students.index')
-            ->with('success', 'Student created successfully.');
+        return redirect()
+            ->route('students.index')
+            ->with('success', "Student {$student->name} created successfully!");
     }
 
     public function show(Student $student)
     {
-        return view('students.show', compact('student'));
+        return view('student.detail', ['student' => $student]);
     }
 
     public function edit(Student $student)
     {
-        return view('students.edit', compact('student'));
+        return view('student.edit', ['student' => $student]);
     }
 
     public function update(Request $request, Student $student)
     {
-        $data = $request->validate($this->rules($student->id));
-        $student->update($data);
+        $student->update($request->validate($this->rules($student)));
 
-        return redirect()->route('students.index')
-            ->with('success', 'Student updated successfully.');
+        return redirect()
+            ->route('students.show', $student)
+            ->with('success', 'Student updated successfully!');
     }
 
     public function destroy(Student $student)
     {
         $student->delete();
 
-        return redirect()->route('students.index')
-            ->with('success', 'Student deleted successfully.');
+        return redirect()
+            ->route('students.index')
+            ->with('success', 'Student deleted successfully!');
+    }
+
+    private function rules(?Student $student = null): array
+    {
+        return [
+            'name' => 'required|string|max:255',
+            'email' => [
+                'required',
+                'email',
+                'max:255',
+                Rule::unique('students')->ignore($student?->id),
+            ],
+            'phone' => 'required|string|max:20',
+            'address' => 'nullable|string|max:500',
+            'date_of_birth' => 'nullable|date',
+        ];
     }
 }
